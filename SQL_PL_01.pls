@@ -80,3 +80,86 @@ BEGIN
         DBMS_OUTPUT.PUT_LINE ('La tienda '||v_tienda2||' tiene más ingresos.');
     END IF;
 END;
+
+/*6. Para un producto introducido por teclado calcula y muestra si su margen de beneficio
+es alto (mayor o igual que el 30%), normal (entre el 30% y el 20%) o bajo (menor o
+igual que el 20%).
+El margen se calculará como ( (precio de venta - precio proveedor)/precio
+proveedor) *100 siempre el que precio proveedor sea distinto de 0. Si es 0
+pondremos SIN DATOS*/
+DECLARE
+    v_producto producto.codproducto%type;
+    v_precio_venta producto.precioventa%type;
+    v_precio_prov producto.precioproveedor%type;
+    e_sin_datos EXCEPTION;
+BEGIN
+    SELECT codproducto, precioventa, precioproveedor into v_producto, v_precio_venta, v_precio_prov
+    from producto
+    where codproducto = &codproducto;
+    
+    IF v_precio_prov =0 THEN
+        RAISE e_sin_datos;
+    END IF;
+    
+    IF ((v_precio_venta - v_precio_prov) / v_precio_prov) * 100 >= 30 THEN
+        DBMS_OUTPUT.PUT_LINE ('Producto: '||v_producto||'. Beneficio: Alto');
+    ELSIF ((v_precio_venta - v_precio_prov) / v_precio_prov) * 100 = 30 THEN
+        DBMS_OUTPUT.PUT_LINE ('Producto: '||v_producto||'. Beneficio: Medio');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE ('Producto: '||v_producto||'. Beneficio: Bajo');
+    END IF;
+EXCEPTION
+    WHEN e_sin_datos THEN
+        DBMS_OUTPUT.PUT_LINE ('SIN DATOS');
+END;
+
+/*7. Para un cliente que se pase por teclado indica si su ciudad coincide con la de la tienda
+en la que trabaja el empleado que tiene asignado o no.*/
+DECLARE
+    v_cliente cliente.codcliente%type;
+    v_empleado empleado.codempleado%type;
+    v_ciudad_cliente cliente.ciudad%type;
+    v_ciudad_empleado tienda.ciudad%type;
+BEGIN
+    SELECT cl.codcliente, cl.ciudad, emp.codempleado, t.ciudad 
+    into v_cliente, v_ciudad_cliente, v_empleado, v_ciudad_empleado
+    from tienda t
+    join empleado emp on t.codtienda = emp.codtienda
+    join cliente cl on cl.codempleadoventas = emp.codempleado
+    where cl.codcliente = &codcliente;
+        
+    IF v_ciudad_cliente = v_ciudad_empleado THEN
+        DBMS_OUTPUT.PUT_LINE ('La tienda del cliente '||v_cliente||
+                                ' y del empleado '||v_empleado||' es la misma');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE ('La tienda del cliente '||v_cliente||
+                                ' y del empleado '||v_empleado||' no es la misma');
+    END IF;
+    
+END;
+
+/*8.Renombra el tipo de producto Utensilios y llamalo Herramientas. Para ello tendrás que
+hacer los siguientes pasos
+    1. Inserta un nuevo tipo de producto llamado Herramientas. El resto de campos deben
+    ser los que tenga actualmente el tipo de Utensilios.
+    2. Actualiza todos los productos que tuvieran como tipo Utensilios para que tengan el
+    nuevo tipo de Herramientas
+    3. Borra el tipo de producto Utensilios.
+    4. Al final de todo, haz commit.*/
+
+DECLARE
+    v_descripcion_tipo tipoproducto.descripcion_texto%type;
+    v_descripcion_html tipoproducto.descripcion_html%type;
+    v_imagen tipoproducto.imagen%type;
+BEGIN
+    
+    SELECT descripcion_texto, descripcion_html, imagen
+    into v_descripcion_tipo, v_descripcion_html, v_imagen
+    from tipoproducto where lower(tipo) = 'utensilios';
+
+    INSERT INTO tipoproducto VALUES ('Herramientas', v_descripcion_tipo, v_descripcion_html, v_imagen);
+    
+    UPDATE producto p SET p.tipoproducto = 'Herramientas' where lower(p.tipoproducto) = 'utensilios';
+    
+    DELETE FROM tipoproducto WHERE lower(tipo) = 'utensilios';
+END;
